@@ -1,0 +1,25 @@
+#!/bin/sh
+set -eu
+umask 077
+
+export HOME="$SNAP_COMMON/home"
+export TMPDIR="$SNAP_COMMON/tmp"
+export FLOCI_GCP_STORAGE_PERSISTENT_PATH="$SNAP_COMMON/data"
+QUARKUS_HTTP_HOST="$(snapctl get addr)"
+FLOCI_GCP_PORT="$(snapctl get port)"
+FLOCI_GCP_STORAGE_MODE="$(snapctl get storage-mode)"
+FLOCI_GCP_DEFAULT_PROJECT_ID="$(snapctl get project)"
+FLOCI_GCP_BASE_URL="$(snapctl get base-url)"
+FLOCI_GCP_TLS_ENABLED="$(snapctl get tls)"
+export QUARKUS_HTTP_HOST FLOCI_GCP_PORT FLOCI_GCP_STORAGE_MODE
+export FLOCI_GCP_DEFAULT_PROJECT_ID FLOCI_GCP_BASE_URL FLOCI_GCP_TLS_ENABLED
+[ -n "$FLOCI_GCP_BASE_URL" ] || export FLOCI_GCP_BASE_URL="http://localhost:$FLOCI_GCP_PORT"
+# The TLS proxy listens on all interfaces and reaches Quarkus on loopback.
+[ "$FLOCI_GCP_TLS_ENABLED" != true ] || QUARKUS_HTTP_HOST=127.0.0.1
+
+mkdir -p "$HOME" "$SNAP_COMMON/config" "$SNAP_COMMON/init"
+# Foreground instances see the same fixed hooks directory: keep it to root.
+chmod 700 "$SNAP_COMMON/init"
+touch "$SNAP_COMMON/config/application.properties"
+cd "$SNAP_COMMON"
+exec "$SNAP/bin/floci-gcp-launch" "$@"

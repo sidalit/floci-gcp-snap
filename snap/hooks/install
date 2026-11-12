@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+snapctl set addr=127.0.0.1 port=4588 storage-mode=persistent project=floci-local \
+  tls=false allow-unsafe-network-exposure=false

@@ -1,0 +1,20 @@
+#!/bin/sh
+set -eu
+umask 077
+
+export FLOCI_GCP_STORAGE_PERSISTENT_PATH="${FLOCI_GCP_STORAGE_PERSISTENT_PATH:-$SNAP_USER_COMMON/data}"
+# On loopback Quarkus would reject the GCP host names Floci GCP routes on.
+export QUARKUS_HTTP_HOST="${QUARKUS_HTTP_HOST:-127.0.0.1}"
+export QUARKUS_HTTP_HOST_VALIDATION_REQUIRE_LOCALHOST="${QUARKUS_HTTP_HOST_VALIDATION_REQUIRE_LOCALHOST:-false}"
+export FLOCI_GCP_VERSION="${FLOCI_GCP_VERSION:-$SNAP_VERSION}"
+# The daemon and every user share the snap's /tmp; Vert.x cannot share its cache.
+[ "${TMPDIR:-/tmp}" != /tmp ] || export TMPDIR="$SNAP_USER_COMMON/tmp"
+
+mkdir -p "$FLOCI_GCP_STORAGE_PERSISTENT_PATH" "$TMPDIR"
+for java_home in "$SNAP"/usr/lib/jvm/java-25-openjdk-*; do
+  export JAVA_HOME="$java_home"
+done
+
+exec "$JAVA_HOME/bin/java" --enable-native-access=ALL-UNNAMED \
+  -Duser.home="$HOME" -Djava.io.tmpdir="$TMPDIR" "$@" \
+  -jar "$SNAP/lib/floci-gcp/quarkus-run.jar"
